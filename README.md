@@ -1,5 +1,7 @@
 # dns-resolver
 
+[![CI](https://github.com/pavel-genai/dns-resolver/actions/workflows/ci.yml/badge.svg)](https://github.com/pavel-genai/dns-resolver/actions/workflows/ci.yml)
+
 A recursive DNS resolver implemented in Go using only the standard library.
 
 ## Features
