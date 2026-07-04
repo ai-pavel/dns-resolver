@@ -1,6 +1,7 @@
 # dns-resolver
 
 [![CI](https://github.com/pavel-genai/dns-resolver/actions/workflows/ci.yml/badge.svg)](https://github.com/pavel-genai/dns-resolver/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/pavel-genai/dns-resolver/branch/main/graph/badge.svg)](https://codecov.io/gh/pavel-genai/dns-resolver)
 
 A recursive DNS resolver implemented in Go using only the standard library.
 
