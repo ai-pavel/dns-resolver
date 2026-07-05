@@ -430,10 +430,10 @@ func TestParseTXT(t *testing.T) {
 		data []byte
 		want string
 	}{
-		{"single string", []byte{5, 'h', 'e', 'l', 'l', 'o'}, "hello"},
-		{"two strings", []byte{3, 'f', 'o', 'o', 3, 'b', 'a', 'r'}, "foobar"},
+		{"single string", []byte{5, 'h', 'e', 'l', 'l', 'o'}, `"hello"`},
+		{"two strings", []byte{3, 'f', 'o', 'o', 3, 'b', 'a', 'r'}, `"foo" "bar"`},
 		{"empty", []byte{}, ""},
-		{"zero-length string", []byte{0}, ""},
+		{"zero-length string", []byte{0}, `""`},
 	}
 
 	for _, tt := range tests {
@@ -478,8 +478,8 @@ func TestParseResponseWithTXTRecord(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Parse failed: %v", err)
 	}
-	if msg.Answers[0].ParsedData != "hello world" {
-		t.Errorf("TXT ParsedData = %q, want %q", msg.Answers[0].ParsedData, "hello world")
+	if msg.Answers[0].ParsedData != `"hello world"` {
+		t.Errorf("TXT ParsedData = %q, want %q", msg.Answers[0].ParsedData, `"hello world"`)
 	}
 }
 

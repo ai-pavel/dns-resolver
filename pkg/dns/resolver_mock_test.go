@@ -925,8 +925,9 @@ func TestParseTXTTruncated(t *testing.T) {
 func TestParseTXTMultipleStrings(t *testing.T) {
 	data := []byte{3, 'a', 'b', 'c', 2, 'd', 'e', 4, 'f', 'g', 'h', 'i'}
 	result := parseTXT(data)
-	if result != "abcdefghi" {
-		t.Errorf("parseTXT = %q, want %q", result, "abcdefghi")
+	want := `"abc" "de" "fghi"`
+	if result != want {
+		t.Errorf("parseTXT = %q, want %q", result, want)
 	}
 }
 

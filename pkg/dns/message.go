@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 )
 
@@ -335,7 +336,12 @@ func parseRData(rrType uint16, data []byte, offset, length int) string {
 	return fmt.Sprintf("<rdata %d bytes>", length)
 }
 
-// parseTXT parses TXT record data, which consists of one or more length-prefixed strings.
+// parseTXT parses TXT record data, which is a sequence of independent
+// length-prefixed character-strings (RFC 1035 §3.3.14). To preserve the
+// boundaries between distinct strings (which are semantically meaningful),
+// each string is rendered quoted and the strings are space-separated, matching
+// dig's output (e.g. `"foo" "bar"`). Joining them with an empty separator
+// would irreversibly merge distinct strings.
 func parseTXT(data []byte) string {
 	var parts []string
 	i := 0
@@ -345,10 +351,10 @@ func parseTXT(data []byte) string {
 		if i+strLen > len(data) {
 			break
 		}
-		parts = append(parts, string(data[i:i+strLen]))
+		parts = append(parts, strconv.Quote(string(data[i:i+strLen])))
 		i += strLen
 	}
-	return strings.Join(parts, "")
+	return strings.Join(parts, " ")
 }
 
 // decodeName decodes a DNS name with pointer compression support.
