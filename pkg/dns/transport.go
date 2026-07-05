@@ -15,13 +15,23 @@ const (
 // Transport handles sending DNS queries and receiving responses over UDP and TCP.
 type Transport struct {
 	Timeout time.Duration
+	Port    string // DNS server port; defaults to "53".
 }
 
 // NewTransport creates a new Transport with the default timeout.
 func NewTransport() *Transport {
 	return &Transport{
 		Timeout: defaultTimeout,
+		Port:    "53",
 	}
+}
+
+// port returns the configured port, defaulting to "53".
+func (t *Transport) port() string {
+	if t.Port == "" {
+		return "53"
+	}
+	return t.Port
 }
 
 // Query sends a DNS query to the given server and returns the parsed response.
@@ -50,7 +60,7 @@ func (t *Transport) queryUDP(msg *Message, server string) (*Message, error) {
 		return nil, fmt.Errorf("serializing query: %w", err)
 	}
 
-	addr := net.JoinHostPort(server, "53")
+	addr := net.JoinHostPort(server, t.port())
 	conn, err := net.DialTimeout("udp", addr, t.Timeout)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to %s via udp: %w", server, err)
@@ -85,7 +95,7 @@ func (t *Transport) queryTCP(msg *Message, server string) (*Message, error) {
 		return nil, fmt.Errorf("serializing query: %w", err)
 	}
 
-	addr := net.JoinHostPort(server, "53")
+	addr := net.JoinHostPort(server, t.port())
 	conn, err := net.DialTimeout("tcp", addr, t.Timeout)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to %s via tcp: %w", server, err)
