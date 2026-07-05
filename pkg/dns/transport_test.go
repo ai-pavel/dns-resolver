@@ -553,6 +553,85 @@ func TestTransportQueryTCPServerClosesImmediately(t *testing.T) {
 	}
 }
 
+// buildResponseWithID builds an A-record response but forces a specific
+// transaction ID (used to simulate spoofed/mismatched datagrams).
+func buildResponseWithID(queryData []byte, id uint16, ip net.IP, flags uint16) []byte {
+	resp := buildResponseFromQuery(queryData, ip, flags)
+	if resp == nil {
+		return nil
+	}
+	binary.BigEndian.PutUint16(resp[0:2], id)
+	return resp
+}
+
+func TestTransportQueryUDPRejectsWrongID(t *testing.T) {
+	// The server always answers with a mismatched transaction ID; queryUDP
+	// must not accept it and should time out instead.
+	port, cleanup := startMockDNSServers(t, func(data []byte) []byte {
+		return buildResponseWithID(data, 0x0000, net.IPv4(9, 9, 9, 9), FlagQR)
+	})
+	defer cleanup()
+
+	tr := &Transport{Timeout: 300 * time.Millisecond, Port: fmt.Sprintf("%d", port)}
+	msg := NewQuery(0xBEEF, "example.com", TypeA)
+
+	_, err := tr.queryUDP(msg, "127.0.0.1")
+	if err == nil {
+		t.Error("expected error when server responds with wrong transaction ID")
+	}
+}
+
+func TestTransportQueryTCPRejectsWrongID(t *testing.T) {
+	port, cleanup := startMockDNSServers(t, func(data []byte) []byte {
+		return buildResponseWithID(data, 0x0000, net.IPv4(9, 9, 9, 9), FlagQR)
+	})
+	defer cleanup()
+
+	tr := &Transport{Timeout: 2 * time.Second, Port: fmt.Sprintf("%d", port)}
+	msg := NewQuery(0xBEEF, "example.com", TypeA)
+
+	_, err := tr.queryTCP(msg, "127.0.0.1")
+	if err == nil {
+		t.Error("expected error when TCP server responds with wrong transaction ID")
+	}
+}
+
+func TestMatchesQuery(t *testing.T) {
+	q := NewQuery(0x1234, "example.com", TypeA)
+
+	good := &Message{
+		Header:    Header{ID: 0x1234, Flags: FlagQR},
+		Questions: []Question{{Name: "example.com", Type: TypeA, Class: ClassIN}},
+	}
+	if !matchesQuery(q, good) {
+		t.Error("expected matchesQuery to accept a well-formed response")
+	}
+
+	wrongID := &Message{
+		Header:    Header{ID: 0x9999, Flags: FlagQR},
+		Questions: []Question{{Name: "example.com", Type: TypeA, Class: ClassIN}},
+	}
+	if matchesQuery(q, wrongID) {
+		t.Error("expected matchesQuery to reject wrong ID")
+	}
+
+	notResponse := &Message{
+		Header:    Header{ID: 0x1234, Flags: 0},
+		Questions: []Question{{Name: "example.com", Type: TypeA, Class: ClassIN}},
+	}
+	if matchesQuery(q, notResponse) {
+		t.Error("expected matchesQuery to reject QR=0 message")
+	}
+
+	wrongQuestion := &Message{
+		Header:    Header{ID: 0x1234, Flags: FlagQR},
+		Questions: []Question{{Name: "evil.com", Type: TypeA, Class: ClassIN}},
+	}
+	if matchesQuery(q, wrongQuestion) {
+		t.Error("expected matchesQuery to reject mismatched question")
+	}
+}
+
 func TestTransportQueryUDPServerSendsGarbage(t *testing.T) {
 	// UDP server responds with garbage that can't be parsed.
 	udpAddr, _ := net.ResolveUDPAddr("udp", "127.0.0.1:0")

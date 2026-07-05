@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -74,18 +75,29 @@ func (t *Transport) queryUDP(msg *Message, server string) (*Message, error) {
 		return nil, fmt.Errorf("sending query: %w", err)
 	}
 
+	// Loop reading datagrams until one matches our query (correct ID, is a
+	// response, and echoes the question) or the deadline expires. This guards
+	// against off-path/spoofed or stale datagrams (a cache-poisoning vector).
 	buf := make([]byte, maxUDPSize)
-	n, err := conn.Read(buf)
-	if err != nil {
-		return nil, fmt.Errorf("reading response: %w", err)
-	}
+	for {
+		n, err := conn.Read(buf)
+		if err != nil {
+			return nil, fmt.Errorf("reading response: %w", err)
+		}
 
-	resp, err := Parse(buf[:n])
-	if err != nil {
-		return nil, fmt.Errorf("parsing response: %w", err)
-	}
+		resp, err := Parse(buf[:n])
+		if err != nil {
+			// A malformed datagram is not necessarily our response; keep
+			// reading until the deadline rather than aborting.
+			continue
+		}
 
-	return resp, nil
+		if !matchesQuery(msg, resp) {
+			continue
+		}
+
+		return resp, nil
+	}
 }
 
 // queryTCP sends a query over TCP with length-prefixed framing.
@@ -131,7 +143,34 @@ func (t *Transport) queryTCP(msg *Message, server string) (*Message, error) {
 		return nil, fmt.Errorf("parsing response: %w", err)
 	}
 
+	if !matchesQuery(msg, resp) {
+		return nil, fmt.Errorf("response does not match query (id/question mismatch)")
+	}
+
 	return resp, nil
+}
+
+// matchesQuery reports whether resp is a valid response to the given query:
+// the transaction IDs match, the QR bit is set, and the question section
+// echoes the query's name (case-insensitively) and type.
+func matchesQuery(query, resp *Message) bool {
+	if resp.Header.ID != query.Header.ID {
+		return false
+	}
+	if !resp.Header.IsResponse() {
+		return false
+	}
+	if len(query.Questions) == 0 {
+		return true
+	}
+	q := query.Questions[0]
+	for _, rq := range resp.Questions {
+		if rq.Type == q.Type &&
+			strings.EqualFold(strings.TrimSuffix(rq.Name, "."), strings.TrimSuffix(q.Name, ".")) {
+			return true
+		}
+	}
+	return false
 }
 
 // readFull reads exactly len(buf) bytes from conn.
