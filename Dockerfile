@@ -1,6 +1,7 @@
 FROM golang:1.21 AS build
 WORKDIR /app
-COPY go.mod go.sum ./
+# go.sum may be absent for a dependency-free module; glob keeps COPY optional
+COPY go.mod go.sum* ./
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -o resolve ./cmd/resolve
