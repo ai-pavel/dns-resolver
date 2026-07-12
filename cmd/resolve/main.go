@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/pavel-genai/dns-resolver/pkg/dns"
+	"github.com/ai-pavel/phonebook/pkg/dns"
 )
 
 func main() {

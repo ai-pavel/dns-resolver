@@ -1,7 +1,7 @@
-# dns-resolver
+# phonebook
 
-[![CI](https://github.com/ai-pavel/dns-resolver/actions/workflows/ci.yml/badge.svg)](https://github.com/ai-pavel/dns-resolver/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/ai-pavel/dns-resolver/branch/main/graph/badge.svg)](https://codecov.io/gh/ai-pavel/dns-resolver)
+[![CI](https://github.com/ai-pavel/phonebook/actions/workflows/ci.yml/badge.svg)](https://github.com/ai-pavel/phonebook/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/ai-pavel/phonebook/branch/main/graph/badge.svg)](https://codecov.io/gh/ai-pavel/phonebook)
 
 A recursive DNS resolver implemented in Go using only the standard library.
 
